@@ -29,8 +29,8 @@ int main(void) {
     	wC = PINC;
 
 	total = wA + wB + wC;
-	PORTD = total;	
-	PORTD = PORTD & 0xFC;
+	PORTD = total >> 2; // most significant bit
+	PORTD = (PORTD & 0xFC); // mask the first two bit off of the result
 
 	if(total > 140) {
 		PORTD = PORTD | 0x01;
