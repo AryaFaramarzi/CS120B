@@ -1,7 +1,7 @@
 /*	Author: afara017
  *  Partner(s) Name: 
  *	Lab Section: 023
- *	Assignment: Lab 2  Exercise 1
+ *	Assignment: Lab 2  Exercise 2
  *	Exercise Description: [optional - include for your own benefit]
  *
  *	I acknowledge all content contained herein, excluding template or example
@@ -16,27 +16,13 @@
 int main(void) {
     /* Insert DDR and PORT initializations */
 	DDRA = 0x00; PORTA = 0x00;
-	DDRB = 0xFF; PORTB = 0x00;
+	DDRC = 0xFF; PORTC = 0x00;
 	
-	unsigned char tmpB = 0x00, door = 0x00, light = 0x00;
+	unsigned char tmpC = 0x00;
     /* Insert your solution below */
     while (1) {
-	door = PINA & 0x01;	
-	light = PINA & 0x02;
-	
-	if(door == 0x00 && light == 0x00)
-		tmpB = 0x00;
-
-	else if(door == 0x01 && light == 0x00)
-		tmpB = 0x01;
-	
-	else if(door == 0x00 && light == 0x02)
-		tmpB = 0x00;
-
-	else if(door == 0x01 && light == 0x02)
-		tmpB = 0x00;
-	
-	PORTB = tmpB;
+	tmpC = !(PINA & 0x01) + !((PINA & 0x02) >> 1)+ !((PINA & 0x04) >> 2) + !((PINA & 0x08) >> 3); 	
+	PORTC = tmpC;
     }
     return 1;
 }
