@@ -14,25 +14,13 @@
 # An example set of tests is shown below. It is important to note that these tests are not "unit tests" in 
 # that they are not ran in isolation but in the order shown and the state of the device is not reset or 
 # altered in between executions (unless preconditions are used).
-tests = [ {'description': 'PINA: 0x00, PINB: 0x00 => PORTC: 0x00',
-    'steps': [ {'inputs': [('PINA',0x00), ('PINB', 0x00)], 'iterations': 5 } ],
-    'expected': [('PORTC',0x00)],
+tests = [ {'description': 'PINA: 0x00 => PORTC: 0x40',
+    'steps': [ {'inputs': [('PINA',0x00)], 'iterations': 5 } ],
+    'expected': [('PORTC',0x40)],
     },
-    {'description': 'PINA: 0x01, PINB: 0xFF => PORTC: 0x09',
-    'steps': [ {'inputs': [('PINA', 0x01),('PINB', 0xFF)],'iterations': 5} ], # Set PIN to val then run one iteration
-    'expected': [('PORTC',0x09)],
-    },
-    {'description': 'PINA: 0xAA, PINB: 0xBB => PORTC: 0x0A', 
-    'steps': [{'inputs': [('PINA', 0x0AA), ('PINB', 0xBB)], 'iterations': 5}],
-    'expected': [('PORTC', 0x0A)],
-    },
-    {'description': 'PINA: 0xFF, PINB: 0xFF => PORTC: 0x10', 
-    'steps': [{'inputs': [('PINA', 0xFF), ('PINB', 0xFF)], 'iterations': 5}],
-    'expected': [('PORTC', 0x10)],
-    },
-    {'description': 'PINA: 0x03, PINB: 0x13 => PORTC: 0x5', 
-    'steps': [{'inputs': [('PINA', 0x03), ('PINB', 0x13)], 'iterations': 5}],
-    'expected': [('PORTC', 0x05)],
+    {'description': 'PINA: 0x0F => PORTC: 0x3F',
+    'steps': [ {'inputs': [('PINA', 0x0F)],'iterations': 5} ], # Set PIN to val then run one iteration
+    'expected': [('PORTC',0x3F)],
     },
     ]
 # Optionally you can add a set of "watch" variables these need to be global or static and may need
