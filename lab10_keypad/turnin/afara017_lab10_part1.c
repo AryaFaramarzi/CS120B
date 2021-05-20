@@ -1,6 +1,6 @@
 /*	Author: afara017
  *  Partner(s) Name: 
- *	Lab Section:
+ *	Lab Section: 023
  *	Assignment: Lab 10  Exercise 1
  *	Exercise Description: [optional - include for your own benefit]
  *
@@ -113,7 +113,7 @@ int displaySMTick(int state) {
 		}
 		switch(state) {
 				case display_display:
-					output = led_output;
+					output = led_output << 7;
 					break;
 		}
 		PORTB = output;
