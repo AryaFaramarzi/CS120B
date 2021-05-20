@@ -21,6 +21,7 @@
 unsigned char lock = 0;
 unsigned char corretSeq = 0;
 char[5] sequence = {'1', '2', '3', '4', '5'};
+unsigned char size = sizeof(sequence) / sizeof(char);
 unsigned char idx = 0;
 
 enum keypad_States {keypad_begin, keypad_wait, keypad_press, keypad_release};
@@ -31,9 +32,9 @@ int keypadSMTick(int state) {
 		unsigned char x = GetKeypadKey();
 		switch(state) {
 				case keypad_begin:
-					state = keypad_wait;
 					idx = 0;
 					corretSeq = 0;
+					state = keypad_wait;
 					break;
 				case keypad_wait:
 					if(x == '\0')
@@ -60,13 +61,12 @@ int keypadSMTick(int state) {
 				case keypad_wait:	
 					break;
 				case keypad_press:
-					if(x == '#') {
+					break;
+				case keypad_release:
+					if(x == '#' || sequence[idx] != x) {
 						idx = 0;
 					}
-					else if(sequence[idx] != x) {
-						idx = 0;
-					}
-					else if(idx == 4) {
+					else if(idx == size) {
 						idx = 0;
 						corretSeq = 1;
 					}
@@ -74,10 +74,7 @@ int keypadSMTick(int state) {
 						idx++;
 					}
 					break;
-				case keypad_release:
-					break;
-		}
-		
+		}	
 		return state;
 }
 
@@ -100,6 +97,7 @@ int lockSMTick(int state) {
 						state = lock_on;
 					break;
 				default:
+					state = lock_begin;
 					break;
 		}
 		switch(state) {
