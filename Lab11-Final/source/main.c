@@ -9,6 +9,7 @@
  */
 #include <avr/io.h>
 #include <stdlib.h>
+#include <time.h>
 #ifdef _SIMULATE_
 #include "simAVRHeader.h"
 #include "scheduler.h"
@@ -16,15 +17,23 @@
 #include "timer.h"
 #endif
 // global vars
+// led matrix
+unsigned char mxRow, mxCol;
+
 // Dinasour position
 unsigned char dRow, dCol;
 
 // Wall position
 unsigned char wRow, wCol;
+// Wall length
+unsigned char wLen;
 // Wall orientation (up / down)
 unsigned char orient;
 // Wall on led-matrix
-unsigned char wall_present;
+unsigned char wall_present = 0;
+
+// randoms
+unsigned char r, rr;
 
 // Game started/ended
 unsigned char game;
@@ -33,9 +42,10 @@ unsigned char game;
 unsigned int high_score;
 
 // Buttons
-unsigned char up, down;
+unsigned char up, down, start;
 
-
+// general 
+unsigned char jump_count, duck_count;
 enum Demo_States {shift};
 int Demo_Tick(int state) {
 
@@ -74,24 +84,61 @@ int Demo_Tick(int state) {
 }
 
 
-enum Dinasour_States {Begin_Dinasour, Wait_Dinasour, Jump_Dinasour, Duck_Dinasour};
+enum Dinasour_States {Begin_Dinasour, Wait_Dinasour, Jump_Dinasour, Long_Jump, Duck_Dinasour, Long_Duck};
 int Dinasour(int state) {
 		up = ((~PINA & 0x01) == 0x01); // PA0
 		down = ((~PINA & 0x04) == 0x04); // PA2
 		switch(state) {
 				case Begin_Dinasour:
-					if(up)
+					if(up && game)
 						state = Wait_Dinasour;
 					else
 						state = Begin_Dinasour;
 					break;
 				case Wait_Dinasour:
+					if(up && !down)
+						state = Jump_Dinasour;
+					else if(down && !up)
+						state = Duck_Dinasour;
+					else
+						state = Wait_Dinasour;
 					break;
 				case Jump_Dinasour:
-					state = Wait_Dinasour;
+					if(up){
+						jump_count = 0;
+						state = Long_Jump;
+					}
+					else if(jump_count == 2)
+						state = Wait_Dinasour;
+					else state = Jump_Dinasour;
+					break;
+				case Long_Jump:
+					if(up)
+						state = Long_Jump;
+					else{
+					if(jump_count >= 2)
+						state = Wait_Dinasour;
+					else
+						state = Long_Jump;}
 					break;
 				case Duck_Dinasour:
-					state = Wait_Dinasour;
+					if(down){
+						duck_count = 0;
+						state = Long_Duck;
+					}
+					else if(duck_count == 2)
+						state = Wait_Dinasour;
+					else
+						state = Duck_Dinasour;
+					break;
+				case Long_Duck:
+					if(down)
+						state = Long_Duck;
+					else{
+					if(duck_count >= 2)
+						state = Wait_Dinasour;
+					else
+						state = Long_Duck;}
 					break;
 				default:
 					state = Begin_Dinasour;
@@ -99,31 +146,143 @@ int Dinasour(int state) {
 		}
 		switch(state) {
 				case Begin_Dinasour:
-					dRow = 3;
-					dCol = 2;
-					game = 0;
-					break;
-				case Wait_Dinasour:
-					game = 1;
-					dRow = 3;
-					dCol= 2;
-					break;
-				case Jump_Dinasour:
 					dRow = 4;
 					dCol = 2;
 					break;
+				case Wait_Dinasour:
+					jump_count = 0;
+					duck_count = 0;
+					dRow = 4;
+					dCol= 2;
+					mxRow = dRow;
+					mxCol = dCol;
+					break;
+				case Jump_Dinasour:
+					jump_count++;
+					dRow = 8;
+					dCol = 2;
+					mxRow = dRow;
+					mxCol = dCol;
+					break;
+				case Long_Jump:
+					jump_count++;
+					dRow = 0x10;
+					dCol = 2;
+					mxRow = dRow;
+					mxCol = dCol;
+					break;
 				case Duck_Dinasour:
+					duck_count++;
 					dRow = 2;
 					dCol = 2;
+					mxRow = dRow;
+					mxCol = dCol;
+					break;
+				case Long_Duck:
+					duck_count++;
+					dRow = 1;
+					dCol = 2;
+					mxRow = dRow;
+					mxCol = dCol;
 					break;
 		}
 		return state;
 }
 
-enum Wall_States {Begin_Wall, Create_Wall, Move_Wall, };
+enum Wall_States {Begin_Wall, Create_Wall, Move_Wall};
 int Wall(int state)
 {
+	switch(state){
+		case Begin_Wall:
+			if(game)
+				state = Create_Wall;
+			break;
+		case Create_Wall:
+			state = Move_Wall;
+			break;
+		case Move_Wall:
+			if(wall_present)
+				state = Move_Wall;
+			else
+				state = Begin_Wall;
+			break;
+		default:
+			state = Begin_Wall;
+			break;
+	}
+	switch(state){
+		case Begin_Wall:
+			r = rand() % 100;
+			orient = r > 50? 1 : -1;
+			rr = rand() % 100;
+			wLen = rr > 50? 3 : 4;
+			break;
+		case Create_Wall:
+			wall_present = 1;
+			wCol = 0x80;
+			if(wLen == 3){
+				if(orient == 1) // up
+					wRow = 0x1c;
+				else
+					wRow = 0x07;}
+			else if(wLen == 4){
+				if(orient == 1)
+					wRow = 0x1e;
+				else
+					wRow = 0x0F;}
+			mxRow = wRow;
+			mxCol = wCol;
+			break;
+		case Move_Wall:
+			if(wCol != 1)
+				wCol = wCol >> 1;
+			else
+				wall_present = 0;
+			mxRow = wRow;
+			mxCol = wCol;
+			break;
+	}
 	return state;
+}
+
+enum Game_States {Menu, Play, Lose};
+int Game(int state) {
+		start = ((~PINA & 0x01) == 0x01);
+		switch(state){
+				case Menu:
+					if(start)
+						state = Play;
+					else
+						state = Menu;
+					break;
+				case Play:
+					if(dCol == wCol && (dRow & wRow) != 0)
+						state = Lose;
+					else
+						state = Play;
+					break;
+				case Lose:
+					state = Menu;
+					break;
+				default:
+					state = Menu;
+					break;
+		}
+		switch(state){
+				case Menu:
+					mxRow = 0x00;
+					mxCol = 0x00;
+					game = 0;
+					break;
+				case Play:
+					game = 1;
+					break;
+				case Lose:
+					game = 0;
+					mxRow = 0xff;
+					mxCol = 0xff;
+					break;
+		}
 }
 
 //enum Score_States {};
@@ -133,8 +292,28 @@ int Score(int state)
 }
 
 //enum Display_states {};
+enum Display_States {Display_Display};
 int Display(int state)
 {
+	switch(Display_Display) {
+			case Display_Display:
+				state = Display_Display;
+				break;
+			default:
+				state = Display_Display;
+				break;
+	}
+	switch(Display_Display) {
+			case Display_Display:
+				for(int r = 0; r < 5; r++){
+					for(int c = 0; c < 8; c++)
+					{
+						PORTC = mxCol & (1 << c);
+						PORTD = ~(mxRow & (1 << r));
+					}
+				}
+				break;
+	}
 	return state;	
 }
 
@@ -142,21 +321,38 @@ int Display(int state)
 
 int main(void) {
 	// seed the rand function
-	srand(time(0));
+	srand(time(NULL));
     /* Insert DDR and PORT initializations */
+    DDRA = 0x00; PORTA = 0x0f;
 	DDRC = 0xff; PORTC = 0x00;
 	DDRD = 0xff; PORTD = 0x00;
     /* Insert your solution below */
-    static task task1;
-    task *tasks[] = {&task1};
+    static task task1, task2, task3, task6;
+    task *tasks[] = {&task1, &task2, &task3, &task6};
     const unsigned short numTasks = sizeof(tasks) / sizeof(task*);
     
     const char start = -1;
     
     task1.state = start;
-    task1.period = 100;
+    task1.period = 200;
     task1.elapsedTime = task1.period;
-    task1.TickFct = &Display;
+    task1.TickFct = &Dinasour;
+    
+    task2.state = start;
+    task2.period = 500;
+    task2.elapsedTime = task2.period;
+    task2.TickFct = &Wall;
+    
+    task3.state = start;
+    task3.period = 100;
+    task3.elapsedTime = task3.period;
+    task3.TickFct = &Game;
+    
+    
+    task6.state = start;
+    task6.period = 1;
+    task6.elapsedTime = task6.period;
+    task6.TickFct = &Display;
     
     unsigned short i;
     unsigned long GCD = tasks[0]->period;
